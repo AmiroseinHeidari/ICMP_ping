@@ -59,7 +59,6 @@ def calculate_checksum(data):
 
 
 def send_ping_request(destination_ip, my_socket):
-    print("DEST IP: ",destination_ip)
     icmp_type = 8
     icmp_code = 0
     icmp_checksum = 0
@@ -71,7 +70,6 @@ def send_ping_request(destination_ip, my_socket):
     icmp_header = struct.pack('!BBHHH', icmp_type, icmp_code, icmp_checksum, icmp_identifier, icmp_sequence)
     icmp_checksum = socket.htons(calculate_checksum(icmp_header + icmp_payload))
     icmp_header = struct.pack('!BBHHH', icmp_type, icmp_code, icmp_checksum, icmp_identifier, icmp_sequence)
-    print("sending header ", (icmp_type, icmp_code, icmp_checksum, icmp_identifier, icmp_sequence))
 
     t = time.time()
     my_socket.sendto(icmp_header + icmp_payload, (destination_ip, 0))
@@ -85,13 +83,12 @@ def receive_ping_reply(my_socket, start_time):
             received_packet, _ = my_socket.recvfrom(1024)
             receive_time = time.time()
             icmp_header = struct.unpack('!BBHHH', received_packet[20:28])
-            print("receiving header ", icmp_header)
             if icmp_header[0] == 0 and icmp_header[1] == 0:
                 t = f'{int((receive_time - start_time) * 1000)}ms'
                 print(f'Ping successful: time={t}')
-                break
+                return t
     except socket.timeout:
-        print('Ping Timed out')
+        print('Request Timed out.')
 
 
 def ping(destination):
@@ -101,11 +98,24 @@ def ping(destination):
         destination_ip = resolve_destination(destination)
     icmp_socket = create_socket()
     start_time = send_ping_request(destination_ip, icmp_socket)
-    receive_ping_reply(icmp_socket, start_time)
+    return receive_ping_reply(icmp_socket, start_time)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Ping tool in the terminal.')
     parser.add_argument('destination', help='IP address or domain to ping')
-    args = parser.parse_args()
-    ping(args.destination)
+    parser.add_argument('packet_count', help='Number of packets to ping')
+    destination , packet_count = parser.parse_args().destination , int(parser.parse_args().packet_count)
+    print(f"Pinging {destination} with 32 bytes of data:")
+    lost = 0
+    sumation = 0
+    for i in range(packet_count):
+        temp = ping(destination)
+        if temp == None :
+            lost += 1
+        else:
+            sumation += int(temp[:-2])
+
+    print("PACKETS** sent:",packet_count,"received:",packet_count-lost,"lost:", lost,f"({lost/packet_count*100}%)loss")
+    if packet_count!=lost:
+        print("Approximate round trip times in milli-seconds:\n\tAverage = ",sumation/(packet_count-lost),"ms")
