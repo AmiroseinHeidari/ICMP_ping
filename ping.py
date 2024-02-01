@@ -4,15 +4,20 @@ import time
 import argparse
 import sys
 import dns.resolver
-import ipaddress
+import re
 
 
 def is_valid_ip(ip):
-    try:
-        ipaddress.ip_address(ip)
-        return True
-    except ValueError:
-        return False
+    con = True
+    bytes = ip.split('.')
+    if len(bytes) != 4:
+        con = False  
+    for i in range(len(bytes)):
+        if re.search("[0-9]+",bytes[i]) is None:
+            con = False
+        if int(bytes[i]) > 255 or int(bytes[i]) < 0:
+            con = False
+    return con
 
 
 def create_socket():
@@ -106,7 +111,7 @@ if __name__ == '__main__':
     parser.add_argument('destination', help='IP address or domain to ping')
     parser.add_argument('packet_count', help='Number of packets to ping')
     destination , packet_count = parser.parse_args().destination , int(parser.parse_args().packet_count)
-    print(f"Pinging {destination} with 32 bytes of data:")
+    print(f"Pinging {destination} with {packet_count*8} bytes of data:")
     lost = 0
     sumation = 0
     for i in range(packet_count):
