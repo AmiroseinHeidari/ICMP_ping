@@ -15,8 +15,6 @@ def is_valid_ip(ip):
     for i in range(len(bytes)):
         if re.search("[0-9]+",bytes[i]) is None:
             con = False
-        if int(bytes[i]) > 255 or int(bytes[i]) < 0:
-            con = False
     return con
 
 
